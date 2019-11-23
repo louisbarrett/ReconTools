@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/Jeffail/gabs"
 	"github.com/PuerkitoBio/goquery"
@@ -23,6 +24,9 @@ const (
 	OwlerSearchURL        = "http://www.owler.com/iaApp/basicSearchCompanySuggestions.htm?searchTerm=QUERY"
 	OwlerDetailsURL       = "https://www.owler.com/iaApp/fetchCompanyProfileData.htm"
 	OSINTBaseURL          = "https://thatsthem.com/QUERYTYPE/QUERY"
+	enrichment            = "https://api.passivetotal.org/v2/enrichment"
+	dnsPassive            = "https://api.passivetotal.org/v2/dns/passive"
+	whoisURL              = "https://api.passivetotal.org/v2/whois"
 )
 
 var (
@@ -35,7 +39,55 @@ var (
 
 	CensysAPIKey = os.Getenv("CENSYSAPIKEY")
 	CensysSecret = os.Getenv("CENSYSAPISECRET")
+
+	// userName PassiveTotal account name
+	userName = os.Getenv("PTUSER")
+	// APIKey PassiveTotal API Key
+	APIKey = os.Getenv("PTAPIKEY")
 )
+
+func queryPTAll(Query string) {
+
+	URLS := []string{dnsPassive, enrichment, whoisURL}
+	waitGroup := sync.WaitGroup{}
+
+	queryAccountQuotas()
+
+	for _, CurrentURL := range URLS {
+		waitGroup.Add(1)
+		go queryPassiveTotal(CurrentURL, &waitGroup, Query)
+	}
+	waitGroup.Wait()
+}
+
+func queryPassiveTotal(endpoint string, waitgroup *sync.WaitGroup, Query string) {
+	httpClient := http.Client{}
+	httpRequest, err := http.NewRequest("GET", endpoint+"?query="+Query, nil)
+	httpRequest.SetBasicAuth(userName, APIKey)
+	httpResponse, err := httpClient.Do(httpRequest)
+	responseBytes := httpResponse.Body
+	message, err := ioutil.ReadAll(responseBytes)
+	prettyPrint, err := gabs.ParseJSON(message)
+	if err != nil {
+		log.Fatal("Error ", err)
+	}
+	fmt.Println(string(prettyPrint.String()))
+	waitgroup.Done()
+}
+
+func queryAccountQuotas() {
+	httpClient := http.Client{}
+	httpRequest, err := http.NewRequest("GET", "https://api.passivetotal.org/v2/account/quota", nil)
+	httpRequest.SetBasicAuth(userName, APIKey)
+	httpResponse, err := httpClient.Do(httpRequest)
+	responseBytes := httpResponse.Body
+	message, err := ioutil.ReadAll(responseBytes)
+	prettyPrint, err := gabs.ParseJSON(message)
+	if err != nil {
+		log.Fatal("Error ", string(message), err)
+	}
+	fmt.Println(string(prettyPrint.String()))
+}
 
 func getPerson(queryType string, query string, state string) []byte {
 	// queryType possiblities are name,email,phone,ipaddress, and address
