@@ -379,7 +379,7 @@ func main() {
 	// EndpointResultsCollection := gabs.New()
 	for endpoint := range EndpointsList {
 		fmt.Println("IP:", strings.Split(EndpointsList[endpoint], ",")[1], "\t\t", "Hostname:", strings.Split(EndpointsList[endpoint], ",")[0])
-		queryCensys(strings.Split(EndpointsList[endpoint], ",")[1])
+		// queryCensys(strings.Split(EndpointsList[endpoint], ",")[1])
 
 		// CEODoxx := getPerson("name", strings.Replace(CEOName, " ", "-", -1), "XX")
 		// fmt.Println(string(CEODoxx))
