@@ -27,6 +27,7 @@ const (
 	enrichment            = "https://api.passivetotal.org/v2/enrichment"
 	dnsPassive            = "https://api.passivetotal.org/v2/dns/passive"
 	whoisURL              = "https://api.passivetotal.org/v2/whois"
+	ABuseDBBaseURL        = "https://www.abuseipdb.com/api/v2/check/"
 )
 
 var (
@@ -44,7 +45,28 @@ var (
 	userName = os.Getenv("PTUSER")
 	// APIKey PassiveTotal API Key
 	APIKey = os.Getenv("PTAPIKEY")
+	// Abuse IP DB API key
+	AbuseDBKey = os.Getenv("ABUSEDBSECRET")
 )
+
+func CheckIP(IPAddress string) {
+
+	httpClient := http.Client{}
+
+	requestURL := ABuseDBBaseURL + "?ipAddress=" + IPAddress
+	httpRequest, _ := http.NewRequest("POST", requestURL, nil)
+	httpRequest.Header.Add("Key", AbuseDBKey)
+	httpRequest.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	httpRequest.Header.Add("Accept", "application/json")
+
+	httpResponse, err := httpClient.Do(httpRequest)
+	if err != nil {
+		log.Fatal(err)
+	}
+	httpResponseBytes, _ := ioutil.ReadAll(httpResponse.Body)
+	fmt.Println(string(httpResponseBytes))
+
+}
 
 func queryPTAll(Query string) {
 
