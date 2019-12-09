@@ -33,7 +33,7 @@ const (
 
 var (
 	// UserAgentString - Browser Identity for requests
-	UserAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.97 Safari/537.36)"
+	UserAgentString = getLatestUserAgent()
 	// WigleAPIKey - API Key from wigle.net
 	WigleAPIKey = os.Getenv("WIGLEAPIKEY")
 	// WigleAPISecret - Secret from wigle.net
@@ -51,6 +51,18 @@ var (
 	// Shodan API key location
 	ShodanAPIKey = os.Getenv("SHODANAPIKEY")
 )
+
+func getLatestUserAgent() string {
+	requestURL := "https://www.whatismybrowser.com/guides/the-latest-user-agent/chrome"
+	httpResponse, err := http.Get(requestURL)
+	parsedHTML, err := goquery.NewDocumentFromReader(httpResponse.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	latestUserAgent := parsedHTML.Find(".code").First().Text()
+	return latestUserAgent
+}
 
 func queryShodan(Query string) {
 	httpClient := http.Client{}
