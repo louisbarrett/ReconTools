@@ -28,6 +28,7 @@ const (
 	dnsPassive            = "https://api.passivetotal.org/v2/dns/passive"
 	whoisURL              = "https://api.passivetotal.org/v2/whois"
 	ABuseDBBaseURL        = "https://www.abuseipdb.com/api/v2/check/"
+	ShodanBaseURL         = "https://api.shodan.io/shodan/host/search?key=APIKEY&minify=true&query='net:QUERY'"
 )
 
 var (
@@ -47,9 +48,28 @@ var (
 	APIKey = os.Getenv("PTAPIKEY")
 	// Abuse IP DB API key
 	AbuseDBKey = os.Getenv("ABUSEDBSECRET")
+	// Shodan API key location
+	ShodanAPIKey = os.Getenv("SHODANAPIKEY")
 )
 
-func CheckIP(IPAddress string) {
+func queryShodan(Query string) {
+	httpClient := http.Client{}
+
+	requestURL := strings.Replace(ShodanBaseURL, "APIKEY", ShodanAPIKey, 1)
+	requestURL = strings.Replace(requestURL, "QUERY", Query, 1)
+	fmt.Println(requestURL)
+	httpRequest, err := http.NewRequest("GET", requestURL, nil)
+	httpResponse, err := httpClient.Do(httpRequest)
+	responseBytes := httpResponse.Body
+	message, err := ioutil.ReadAll(responseBytes)
+	prettyPrint, err := gabs.ParseJSON(message)
+	if err != nil {
+		log.Fatal("Shodan Error ", string(message), err)
+	}
+	fmt.Println(string(prettyPrint.String()))
+}
+
+func CheckIPReputation(IPAddress string) {
 
 	httpClient := http.Client{}
 
@@ -73,7 +93,8 @@ func queryPTAll(Query string) {
 	URLS := []string{dnsPassive, enrichment, whoisURL}
 	waitGroup := sync.WaitGroup{}
 
-	queryAccountQuotas()
+	// Check account quotas before executing
+	// queryAccountQuotas()
 
 	for _, CurrentURL := range URLS {
 		waitGroup.Add(1)
@@ -402,7 +423,7 @@ func main() {
 	for endpoint := range EndpointsList {
 		fmt.Println("IP:", strings.Split(EndpointsList[endpoint], ",")[1], "\t\t", "Hostname:", strings.Split(EndpointsList[endpoint], ",")[0])
 		// queryCensys(strings.Split(EndpointsList[endpoint], ",")[1])
-
+		// queryShodan(strings.Split(EndpointsList[endpoint], ",")[1])
 		// CEODoxx := getPerson("name", strings.Replace(CEOName, " ", "-", -1), "XX")
 		// fmt.Println(string(CEODoxx))
 	}
