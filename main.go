@@ -21,7 +21,7 @@ const (
 	WigleAddressLookupURL = "https://api.wigle.net/api/v2/network/geocode?addresscode=TARGETADDRESS"
 	WigleWIFIAddressURL   = "https://api.wigle.net/api/v2/network/search/?onlymine=false&freenet=false&paynet=false&latrange1=LATITUDEA&latrange2=LATITUDEB&longrange1=LONGITUDEA&longrange2=LONGITUDEB&resultsPerPage="
 	GeoLocateURL          = "https://maps.googleapis.com/maps/api/geocode/json?latlng=LATITUDE,LONGITUDE&sensor=true"
-	OwlerSearchURL        = "http://www.owler.com/iaApp/basicSearchCompanySuggestions.htm?searchTerm=QUERY"
+	OwlerSearchURL        = "https://www.owler.com/iaApp/basicSearchCompanySuggestions.htm?searchTerm=QUERY"
 	OwlerDetailsURL       = "https://www.owler.com/iaApp/fetchCompanyProfileData.htm"
 	OSINTBaseURL          = "https://thatsthem.com/QUERYTYPE/QUERY"
 	enrichment            = "https://api.passivetotal.org/v2/enrichment"
