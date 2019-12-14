@@ -346,7 +346,7 @@ func queryCensys(query string) string {
 
 	httpRequest.SetBasicAuth(CensysAPIKey, CensysSecret)
 	httpRequest.Header.Set("Accept", "application/json")
-	httpRequest.Header.Add("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/78.0.3904.70 Safari/537.36")
+	httpRequest.Header.Add("User-Agent", UserAgentString)
 
 	httpResponse, err := httpClient.Do(httpRequest)
 	if err != nil {
