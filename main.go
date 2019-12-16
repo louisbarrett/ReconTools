@@ -50,6 +50,8 @@ var (
 	AbuseDBKey = os.Getenv("ABUSEDBSECRET")
 	// Shodan API key location
 	ShodanAPIKey = os.Getenv("SHODANAPIKEY")
+	red          = color.New(color.FgRed)
+	cyan         = color.New(color.FgCyan)
 )
 
 func getLatestUserAgent() string {
@@ -64,21 +66,26 @@ func getLatestUserAgent() string {
 	return latestUserAgent
 }
 
-func queryShodan(Query string) {
+func queryShodan(Query string) gabs.Container {
 	httpClient := http.Client{}
 
 	requestURL := strings.Replace(ShodanBaseURL, "APIKEY", ShodanAPIKey, 1)
 	requestURL = strings.Replace(requestURL, "QUERY", Query, 1)
-	fmt.Println(requestURL)
 	httpRequest, err := http.NewRequest("GET", requestURL, nil)
 	httpResponse, err := httpClient.Do(httpRequest)
 	responseBytes := httpResponse.Body
 	message, err := ioutil.ReadAll(responseBytes)
 	prettyPrint, err := gabs.ParseJSON(message)
+	openPorts := prettyPrint.Path("matches.*.port").String()
+	nodeData := prettyPrint.Path("matches.*.data").String()
 	if err != nil {
 		log.Fatal("Shodan Error ", string(message), err)
 	}
-	fmt.Println(string(prettyPrint.String()))
+	red.Print("Ports: ")
+	fmt.Println(openPorts)
+	red.Print("Banner: ")
+	fmt.Println(nodeData, "\n")
+	return *prettyPrint
 }
 
 func CheckIPReputation(IPAddress string) {
@@ -392,7 +399,10 @@ func main() {
 	CEOLastName := parsedResults.Path("ceo.current_ceo.last_name").String()
 	CEOName := strings.Replace(CEOFirstName, "\"", "", 2) + " " + strings.Replace(CEOLastName, "\"", "", 2)
 	industrySector := parsedResults.Path("company_info.company_details.industrySector.sector_name")
+
 	companyFounded := parsedResults.Path("company_info.company_details.founded").String()
+	companyFounded = strings.Replace(companyFounded, "\"", "", 4)
+
 	companyAddressCountry := parsedResults.Path("company_info.company_details.hqAddress.country").String()
 	companyAddressCountry = strings.Replace(companyAddressCountry, "\"", "", 4)
 
@@ -412,9 +422,7 @@ func main() {
 	companyName := parsedResults.Path("company_info.company_details.name").String()
 	companyName = strings.Replace(companyName, "\"", "", 4)
 
-	red := color.New(color.FgRed)
-	red.Println("Company Details\n")
-	// fmt.Println("Website: ", companyWebsite)
+	cyan.Println("Company Details\n")
 
 	fmt.Println("Name:", companyName)
 	fmt.Println("CEO:", CEOName)
@@ -423,7 +431,7 @@ func main() {
 	fmt.Println("Industry Sector:", industrySector)
 	fmt.Println("Address:", companyFullAddress)
 
-	red.Println("\nNetwork Perimeter from Dig")
+	cyan.Println("\nNetwork Perimeter from Dig\n")
 
 	CompanyDomainEndpoints := getSubDomains(companyDomain)
 	EndpointsList := strings.Split(CompanyDomainEndpoints, "\n")
@@ -433,9 +441,10 @@ func main() {
 
 	// EndpointResultsCollection := gabs.New()
 	for endpoint := range EndpointsList {
-		fmt.Println("IP:", strings.Split(EndpointsList[endpoint], ",")[1], "\t\t", "Hostname:", strings.Split(EndpointsList[endpoint], ",")[0])
+		cyan.Print("IP: ")
+		fmt.Println(strings.Split(EndpointsList[endpoint], ",")[1], "\t\t", "Hostname:", strings.Split(EndpointsList[endpoint], ",")[0])
 		// queryCensys(strings.Split(EndpointsList[endpoint], ",")[1])
-		// queryShodan(strings.Split(EndpointsList[endpoint], ",")[1])
+		queryShodan(strings.Split(EndpointsList[endpoint], ",")[1])
 		// CEODoxx := getPerson("name", strings.Replace(CEOName, " ", "-", -1), "XX")
 		// fmt.Println(string(CEODoxx))
 	}
