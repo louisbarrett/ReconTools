@@ -67,25 +67,31 @@ func getLatestUserAgent() string {
 }
 
 func queryShodan(Query string) gabs.Container {
-	httpClient := http.Client{}
 
-	requestURL := strings.Replace(ShodanBaseURL, "APIKEY", ShodanAPIKey, 1)
-	requestURL = strings.Replace(requestURL, "QUERY", Query, 1)
-	httpRequest, err := http.NewRequest("GET", requestURL, nil)
-	httpResponse, err := httpClient.Do(httpRequest)
-	responseBytes := httpResponse.Body
-	message, err := ioutil.ReadAll(responseBytes)
-	prettyPrint, err := gabs.ParseJSON(message)
-	openPorts := prettyPrint.Path("matches.*.port").String()
-	nodeData := prettyPrint.Path("matches.*.data").String()
-	if err != nil {
-		log.Fatal("Shodan Error ", string(message), err)
+	if ShodanAPIKey != "" {
+		httpClient := http.Client{}
+		requestURL := strings.Replace(ShodanBaseURL, "APIKEY", ShodanAPIKey, 1)
+		requestURL = strings.Replace(requestURL, "QUERY", Query, 1)
+		httpRequest, err := http.NewRequest("GET", requestURL, nil)
+		httpResponse, err := httpClient.Do(httpRequest)
+		responseBytes := httpResponse.Body
+		message, err := ioutil.ReadAll(responseBytes)
+		prettyPrint, err := gabs.ParseJSON(message)
+		openPorts := prettyPrint.Path("matches.*.port").String()
+		nodeData := prettyPrint.Path("matches.*.data").String()
+		if err != nil {
+			log.Fatal("Shodan Error ", string(message), err)
+		}
+		red.Print("Ports: ")
+		fmt.Println(openPorts, "\n")
+		red.Print("Banner: ")
+		fmt.Println(nodeData, "\n")
+		return *prettyPrint
+	} else {
+		return gabs.Container{}
+
 	}
-	red.Print("Ports: ")
-	fmt.Println(openPorts)
-	red.Print("Banner: ")
-	fmt.Println(nodeData, "\n")
-	return *prettyPrint
+
 }
 
 func CheckIPReputation(IPAddress string) {
