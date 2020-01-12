@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -51,6 +52,31 @@ var (
 	// Shodan API key location
 	ShodanAPIKey = os.Getenv("SHODANAPIKEY")
 )
+
+func getEmployees(domain string) string {
+	//
+	requestURL := "https://hunter.io/trial/v2/domain-search?limit=1000&offset=0&domain=" + domain + "&format=json"
+	httpClient := http.Client{}
+	httpRequest, err := http.NewRequest("GET", requestURL, nil)
+	httpResponse, err := httpClient.Do(httpRequest)
+	responseBytes := httpResponse.Body
+	message, err := ioutil.ReadAll(responseBytes)
+	prettyPrint, err := gabs.ParseJSON(message)
+	if err != nil {
+		log.Fatal("Error ", string(message), err)
+	}
+	domainEmails := prettyPrint.Path("data.emails")
+	Employees := domainEmails.Children()
+	for email := range Employees {
+		fmt.Println(
+			strings.Replace(Employees[email].Path("first_name").String(), "\"", "", 2),
+			strings.Replace(Employees[email].Path("last_name").String(), "\"", "", 2),
+			strings.Replace(Employees[email].Path("position").String(), "\"", "", 2),
+			strings.Replace(Employees[email].Path("value").String(), "\"", "", 2),
+		)
+	}
+	return domainEmails.String()
+}
 
 func getLatestUserAgent() string {
 	requestURL := "https://www.whatismybrowser.com/guides/the-latest-user-agent/chrome"
@@ -365,8 +391,18 @@ func queryCensys(query string) string {
 }
 
 func main() {
+	var flagPassive = flag.Bool("passive", true, "do not send any direct packets to the target")
+	var flagHelp = flag.Bool("Help", true, "Show this help message")
+	var flagOrgName = flag.String("org", "", "The name of the organization to scan")
+	var flagOrgNetwork = flag.String("network", "", "Attempt to discover network perimitter")
+	var flagEmployees = flag.String("employees", "", "Attempt to discover employee profiles")
+	var flagOutput = flag.String("output", "", "Filename to output the report")
+	// var flagOrgName = flag.String("org", "", "The name of the organization to scan")
+	// var flagOrgName = flag.String("org", "", "The name of the organization to scan")
+
+	_, _, _, _, _, _ = flagPassive, flagHelp, flagOrgName, flagOrgNetwork, flagEmployees, flagOutput
+
 	UserQuery := os.Args[1]
-	// UserQuery := "Coke"
 
 	Results := getOrganizationByName(UserQuery)
 
@@ -374,6 +410,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	companyDataURL := parsedResults.Path("results.*.attributeForAutoSuggestAsMap").Children()
 	companyInfo := companyDataURL[0]
 
@@ -387,7 +424,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	CEOFirstName := parsedResults.Path("ceo.current_ceo.first_name").String()
 	CEOLastName := parsedResults.Path("ceo.current_ceo.last_name").String()
 	CEOName := strings.Replace(CEOFirstName, "\"", "", 2) + " " + strings.Replace(CEOLastName, "\"", "", 2)
@@ -414,7 +450,6 @@ func main() {
 
 	red := color.New(color.FgRed)
 	red.Println("Company Details\n")
-	// fmt.Println("Website: ", companyWebsite)
 
 	fmt.Println("Name:", companyName)
 	fmt.Println("CEO:", CEOName)
@@ -422,6 +457,8 @@ func main() {
 	fmt.Println("Company TLD:", companyDomain)
 	fmt.Println("Industry Sector:", industrySector)
 	fmt.Println("Address:", companyFullAddress)
+	fmt.Println("\nEmployees:\n")
+	getEmployees(companyDomain)
 
 	red.Println("\nNetwork Perimeter from Dig")
 
@@ -431,7 +468,6 @@ func main() {
 		log.Fatal(EndpointsList)
 	}
 
-	// EndpointResultsCollection := gabs.New()
 	for endpoint := range EndpointsList {
 		fmt.Println("IP:", strings.Split(EndpointsList[endpoint], ",")[1], "\t\t", "Hostname:", strings.Split(EndpointsList[endpoint], ",")[0])
 		// queryCensys(strings.Split(EndpointsList[endpoint], ",")[1])
@@ -441,3 +477,5 @@ func main() {
 	}
 
 }
+
+// https://hunter.io/trial/v2/domain-search?limit=10&offset=0&domain=rigor.com&format=json
