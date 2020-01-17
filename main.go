@@ -51,13 +51,15 @@ var (
 	AbuseDBKey = os.Getenv("ABUSEDBSECRET")
 	// Shodan API key location
 	ShodanAPIKey = os.Getenv("SHODANAPIKEY")
+
+	HunterAPIKey = os.Getenv("HUNTERAPIKEY")
 	red          = color.New(color.FgRed)
 	cyan         = color.New(color.FgCyan)
 )
 
 func getEmployees(domain string) string {
 	//
-	requestURL := "https://hunter.io/trial/v2/domain-search?limit=1000&offset=0&domain=" + domain + "&format=json"
+	requestURL := "https://hunter.io/v2/domain-search?limit=60&offset=0&domain=" + domain + "&format=json&api_key=" + HunterAPIKey
 	httpClient := http.Client{}
 	httpRequest, err := http.NewRequest("GET", requestURL, nil)
 	httpResponse, err := httpClient.Do(httpRequest)
@@ -69,13 +71,17 @@ func getEmployees(domain string) string {
 	}
 	domainEmails := prettyPrint.Path("data.emails")
 	Employees := domainEmails.Children()
-	for email := range Employees {
-		fmt.Println(
-			strings.Replace(Employees[email].Path("first_name").String(), "\"", "", 2),
-			strings.Replace(Employees[email].Path("last_name").String(), "\"", "", 2),
-			strings.Replace(Employees[email].Path("position").String(), "\"", "", 2),
-			strings.Replace(Employees[email].Path("value").String(), "\"", "", 2),
-		)
+	if len(Employees) > 0 {
+		for email := range Employees {
+			fmt.Println(
+				strings.Replace(Employees[email].Path("first_name").String(), "\"", "", 2),
+				strings.Replace(Employees[email].Path("last_name").String(), "\"", "", 2), "\t\t\t",
+				strings.Replace(Employees[email].Path("position").String(), "\"", "", 2),
+				strings.Replace(Employees[email].Path("value").String(), "\"", "", 2),
+			)
+		}
+	} else {
+		fmt.Println(prettyPrint)
 	}
 	return domainEmails.String()
 }
