@@ -417,18 +417,18 @@ func queryCensys(query string) string {
 }
 
 func main() {
-	var flagPassive = flag.Bool("passive", true, "do not send any direct packets to the target")
-	var flagHelp = flag.Bool("Help", true, "Show this help message")
 	var flagOrgName = flag.String("org", "", "The name of the organization to scan")
-	var flagOrgNetwork = flag.String("network", "", "Attempt to discover network perimitter")
-	var flagEmployees = flag.String("employees", "", "Attempt to discover employee profiles")
+	var flagOrgNetwork = flag.Bool("network", false, "Attempt to discover network perimiter via dig")
+	var flagNetworkPorts = flag.Bool("ports", false, "Attempt to discover network perimiter via dig")
+	var flagEmployees = flag.Bool("employees", false, "Attempt to discover employee profiles")
+	var flagDoxxCEO = flag.Bool("doxx", false, "Attempt an OSINT look up on org CEO")
 	var flagOutput = flag.String("output", "", "Filename to output the report")
-	// var flagOrgName = flag.String("org", "", "The name of the organization to scan")
-	// var flagOrgName = flag.String("org", "", "The name of the organization to scan")
 
-	_, _, _, _, _, _ = flagPassive, flagHelp, flagOrgName, flagOrgNetwork, flagEmployees, flagOutput
+	flag.Parse()
 
-	UserQuery := os.Args[1]
+	_, _, _, _, _ = flagOrgName, flagOrgNetwork, flagEmployees, flagOutput, flagNetworkPorts
+
+	UserQuery := *flagOrgName
 
 	Results := getOrganizationByName(UserQuery)
 
@@ -478,7 +478,7 @@ func main() {
 	companyName = strings.Replace(companyName, "\"", "", 4)
 
 	red := color.New(color.FgRed)
-	red.Println("Company Details\n")
+	red.Println("\nCompany Details\n")
 
 	fmt.Println("Name:", companyName)
 	fmt.Println("CEO:", CEOName)
@@ -487,26 +487,55 @@ func main() {
 	fmt.Println("Industry Sector:", industrySector)
 	fmt.Println("Address:", companyFullAddress)
 
-	red.Println("\nEmployees:\n")
-	getEmployees(companyDomain)
+	if *flagDoxxCEO {
+		CEODoxx := getPerson("name", strings.Replace(CEOName, " ", "-", -1), "XX")
+		ceoDetails, _ := gabs.ParseJSON(CEODoxx)
+		allResults := ceoDetails.Path("results").Children()
+		if len(allResults) > 1 {
+			red.Println("\n*CEO Personal Details: ")
 
-	red.Println("\nNetwork Perimeter from Dig\n")
+			for i := range allResults {
+				identityResult := allResults[i].String()
+				for _, r := range []string{"\"", "\\", "{", "}"} {
+					identityResult = strings.Replace(identityResult, r, " ", -1)
+				}
+				if len(identityResult) > 0 {
+					fmt.Println(identityResult)
+				} else {
+					fmt.Println("No results found")
+				}
 
-	CompanyDomainEndpoints := getSubDomains(companyDomain)
-	EndpointsList := strings.Split(CompanyDomainEndpoints, "\n")
-	if len(EndpointsList) < 2 {
-		log.Fatal(EndpointsList)
+			}
+		}
 	}
 
-	for endpoint := range EndpointsList {
-		cyan.Print("IP: ")
-		fmt.Println(strings.Split(EndpointsList[endpoint], ",")[1], "\t\t", "Hostname:", strings.Split(EndpointsList[endpoint], ",")[0])
-		// queryCensys(strings.Split(EndpointsList[endpoint], ",")[1])
-		queryShodan(strings.Split(EndpointsList[endpoint], ",")[1])
-		// CEODoxx := getPerson("name", strings.Replace(CEOName, " ", "-", -1), "XX")
-		// fmt.Println(string(CEODoxx))
+	if *flagEmployees {
+		red.Println("\nEmployees:\n")
+		getEmployees(companyDomain)
+	}
+
+	if *flagNetworkPorts {
+		*flagOrgNetwork = true
+	}
+
+	if *flagOrgNetwork {
+		red.Println("\nNetwork Perimeter from Dig\n")
+
+		CompanyDomainEndpoints := getSubDomains(companyDomain)
+		EndpointsList := strings.Split(CompanyDomainEndpoints, "\n")
+		if len(EndpointsList) < 2 {
+			log.Fatal(EndpointsList)
+		}
+
+		for endpoint := range EndpointsList {
+			cyan.Print("IP: ")
+			fmt.Println(strings.Split(EndpointsList[endpoint], ",")[1], "\t\t", "Hostname:", strings.Split(EndpointsList[endpoint], ",")[0])
+
+			if *flagNetworkPorts {
+				queryShodan(strings.Split(EndpointsList[endpoint], ",")[1])
+			}
+
+		}
 	}
 
 }
-
-// https://hunter.io/trial/v2/domain-search?limit=10&offset=0&domain=rigor.com&format=json
