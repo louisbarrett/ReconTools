@@ -58,8 +58,15 @@ var (
 )
 
 func getEmployees(domain string) string {
-	//
-	requestURL := "https://hunter.io/v2/domain-search?limit=60&offset=0&domain=" + domain + "&format=json&api_key=" + HunterAPIKey
+	var requestURL string
+	// https://hunter.io/trial/v2/domain-search?limit=10&offset=0&domain=rigor.com&format=json
+
+	if HunterAPIKey == "" {
+		requestURL = "https://hunter.io/trial/v2/domain-search?limit=10&offset=0&domain=" + domain + "&format=json"
+	} else {
+		requestURL = "https://hunter.io/v2/domain-search?limit=60&offset=0&domain=" + domain + "&format=json&api_key=" + HunterAPIKey
+	}
+
 	httpClient := http.Client{}
 	httpRequest, err := http.NewRequest("GET", requestURL, nil)
 	httpResponse, err := httpClient.Do(httpRequest)
