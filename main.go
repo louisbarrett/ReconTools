@@ -423,119 +423,122 @@ func main() {
 	var flagEmployees = flag.Bool("employees", false, "Attempt to discover employee profiles")
 	var flagDoxxCEO = flag.Bool("doxx", false, "Attempt an OSINT look up on org CEO")
 	var flagOutput = flag.String("output", "", "Filename to output the report")
-
+	var parsedResults *gabs.Container
+	var err error
 	flag.Parse()
 
 	_, _, _, _, _ = flagOrgName, flagOrgNetwork, flagEmployees, flagOutput, flagNetworkPorts
 
 	UserQuery := *flagOrgName
+	if len(*flagOrgName) > 0 {
+		Results := getOrganizationByName(UserQuery)
+		parsedResults, err = gabs.ParseJSON(Results)
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	Results := getOrganizationByName(UserQuery)
+		companyDataURL := parsedResults.Path("results.*.attributeForAutoSuggestAsMap").Children()
 
-	parsedResults, err := gabs.ParseJSON(Results)
-	if err != nil {
-		log.Fatal(err)
-	}
+		companyInfo := companyDataURL[0]
 
-	companyDataURL := parsedResults.Path("results.*.attributeForAutoSuggestAsMap").Children()
-	companyInfo := companyDataURL[0]
+		companyID := companyInfo.Path("id").String()
+		companyID = strings.Replace(companyID, "\"", "", 2)
+		companyDomain := companyInfo.Path("primary_domain").String()
+		companyDomain = strings.Replace(companyDomain, "\"", "", 2)
 
-	companyID := companyInfo.Path("id").String()
-	companyID = strings.Replace(companyID, "\"", "", 2)
-	companyDomain := companyInfo.Path("primary_domain").String()
-	companyDomain = strings.Replace(companyDomain, "\"", "", 2)
+		companyDetails := getOrganizationDetails(companyID)
+		parsedResults, err = gabs.ParseJSON(companyDetails)
+		if err != nil {
+			log.Fatal(err)
+		}
+		CEOFirstName := parsedResults.Path("ceo.current_ceo.first_name").String()
+		CEOLastName := parsedResults.Path("ceo.current_ceo.last_name").String()
+		CEOName := strings.Replace(CEOFirstName, "\"", "", 2) + " " + strings.Replace(CEOLastName, "\"", "", 2)
+		industrySector := parsedResults.Path("company_info.company_details.industrySector.sector_name")
 
-	companyDetails := getOrganizationDetails(companyID)
-	parsedResults, err = gabs.ParseJSON(companyDetails)
-	if err != nil {
-		log.Fatal(err)
-	}
-	CEOFirstName := parsedResults.Path("ceo.current_ceo.first_name").String()
-	CEOLastName := parsedResults.Path("ceo.current_ceo.last_name").String()
-	CEOName := strings.Replace(CEOFirstName, "\"", "", 2) + " " + strings.Replace(CEOLastName, "\"", "", 2)
-	industrySector := parsedResults.Path("company_info.company_details.industrySector.sector_name")
+		companyFounded := parsedResults.Path("company_info.company_details.founded").String()
+		companyFounded = strings.Replace(companyFounded, "\"", "", 4)
 
-	companyFounded := parsedResults.Path("company_info.company_details.founded").String()
-	companyFounded = strings.Replace(companyFounded, "\"", "", 4)
+		companyAddressCountry := parsedResults.Path("company_info.company_details.hqAddress.country").String()
+		companyAddressCountry = strings.Replace(companyAddressCountry, "\"", "", 4)
 
-	companyAddressCountry := parsedResults.Path("company_info.company_details.hqAddress.country").String()
-	companyAddressCountry = strings.Replace(companyAddressCountry, "\"", "", 4)
+		companyAddressState := parsedResults.Path("company_info.company_details.hqAddress.state").String()
+		companyAddressState = strings.Replace(companyAddressState, "\"", "", 4)
 
-	companyAddressState := parsedResults.Path("company_info.company_details.hqAddress.state").String()
-	companyAddressState = strings.Replace(companyAddressState, "\"", "", 4)
+		companyAddressCity := parsedResults.Path("company_info.company_details.hqAddress.city").String()
+		companyAddressCity = strings.Replace(companyAddressCity, "\"", "", 4)
 
-	companyAddressCity := parsedResults.Path("company_info.company_details.hqAddress.city").String()
-	companyAddressCity = strings.Replace(companyAddressCity, "\"", "", 4)
+		companyAddressStreet1 := parsedResults.Path("company_info.company_details.hqAddress.street1").String()
+		companyAddressStreet1 = strings.Replace(companyAddressStreet1, "\"", "", 4)
 
-	companyAddressStreet1 := parsedResults.Path("company_info.company_details.hqAddress.street1").String()
-	companyAddressStreet1 = strings.Replace(companyAddressStreet1, "\"", "", 4)
+		companyAddressStreet2 := parsedResults.Path("company_info.company_details.hqAddress.street2").String()
+		companyAddressStreet2 = strings.Replace(companyAddressStreet2, "\"", "", 4)
+		companyFullAddress := (companyAddressStreet1 + " " + companyAddressStreet2 + " " + companyAddressCity + " " + companyAddressState)
 
-	companyAddressStreet2 := parsedResults.Path("company_info.company_details.hqAddress.street2").String()
-	companyAddressStreet2 = strings.Replace(companyAddressStreet2, "\"", "", 4)
-	companyFullAddress := (companyAddressStreet1 + " " + companyAddressStreet2 + " " + companyAddressCity + " " + companyAddressState)
+		companyName := parsedResults.Path("company_info.company_details.name").String()
+		companyName = strings.Replace(companyName, "\"", "", 4)
 
-	companyName := parsedResults.Path("company_info.company_details.name").String()
-	companyName = strings.Replace(companyName, "\"", "", 4)
+		red := color.New(color.FgRed)
+		red.Println("\nCompany Details\n")
 
-	red := color.New(color.FgRed)
-	red.Println("\nCompany Details\n")
+		fmt.Println("Name:", companyName)
+		fmt.Println("CEO:", CEOName)
+		fmt.Println("Founded:", companyFounded)
+		fmt.Println("Company TLD:", companyDomain)
+		fmt.Println("Industry Sector:", industrySector)
+		fmt.Println("Address:", companyFullAddress)
 
-	fmt.Println("Name:", companyName)
-	fmt.Println("CEO:", CEOName)
-	fmt.Println("Founded:", companyFounded)
-	fmt.Println("Company TLD:", companyDomain)
-	fmt.Println("Industry Sector:", industrySector)
-	fmt.Println("Address:", companyFullAddress)
+		if *flagDoxxCEO {
+			CEODoxx := getPerson("name", strings.Replace(CEOName, " ", "-", -1), "XX")
+			ceoDetails, _ := gabs.ParseJSON(CEODoxx)
+			allResults := ceoDetails.Path("results").Children()
+			if len(allResults) > 1 {
+				red.Println("\n*CEO Personal Details: ")
 
-	if *flagDoxxCEO {
-		CEODoxx := getPerson("name", strings.Replace(CEOName, " ", "-", -1), "XX")
-		ceoDetails, _ := gabs.ParseJSON(CEODoxx)
-		allResults := ceoDetails.Path("results").Children()
-		if len(allResults) > 1 {
-			red.Println("\n*CEO Personal Details: ")
+				for i := range allResults {
+					identityResult := allResults[i].String()
+					for _, r := range []string{"\"", "\\", "{", "}"} {
+						identityResult = strings.Replace(identityResult, r, " ", -1)
+					}
+					if len(identityResult) > 0 {
+						fmt.Println(identityResult)
+					} else {
+						fmt.Println("No results found")
+					}
 
-			for i := range allResults {
-				identityResult := allResults[i].String()
-				for _, r := range []string{"\"", "\\", "{", "}"} {
-					identityResult = strings.Replace(identityResult, r, " ", -1)
 				}
-				if len(identityResult) > 0 {
-					fmt.Println(identityResult)
-				} else {
-					fmt.Println("No results found")
+			}
+		}
+
+		if *flagEmployees {
+			red.Println("\nEmployees:\n")
+			getEmployees(companyDomain)
+		}
+
+		if *flagNetworkPorts {
+			*flagOrgNetwork = true
+		}
+
+		if *flagOrgNetwork {
+			red.Println("\nNetwork Perimeter from Dig\n")
+
+			CompanyDomainEndpoints := getSubDomains(companyDomain)
+			EndpointsList := strings.Split(CompanyDomainEndpoints, "\n")
+			if len(EndpointsList) < 2 {
+				log.Fatal(EndpointsList)
+			}
+
+			for endpoint := range EndpointsList {
+				cyan.Print("IP: ")
+				fmt.Println(strings.Split(EndpointsList[endpoint], ",")[1], "\t\t", "Hostname:", strings.Split(EndpointsList[endpoint], ",")[0])
+
+				if *flagNetworkPorts {
+					queryShodan(strings.Split(EndpointsList[endpoint], ",")[1])
 				}
 
 			}
 		}
+	} else {
+		flag.Usage()
 	}
-
-	if *flagEmployees {
-		red.Println("\nEmployees:\n")
-		getEmployees(companyDomain)
-	}
-
-	if *flagNetworkPorts {
-		*flagOrgNetwork = true
-	}
-
-	if *flagOrgNetwork {
-		red.Println("\nNetwork Perimeter from Dig\n")
-
-		CompanyDomainEndpoints := getSubDomains(companyDomain)
-		EndpointsList := strings.Split(CompanyDomainEndpoints, "\n")
-		if len(EndpointsList) < 2 {
-			log.Fatal(EndpointsList)
-		}
-
-		for endpoint := range EndpointsList {
-			cyan.Print("IP: ")
-			fmt.Println(strings.Split(EndpointsList[endpoint], ",")[1], "\t\t", "Hostname:", strings.Split(EndpointsList[endpoint], ",")[0])
-
-			if *flagNetworkPorts {
-				queryShodan(strings.Split(EndpointsList[endpoint], ",")[1])
-			}
-
-		}
-	}
-
 }
