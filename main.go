@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Jeffail/gabs"
+	"github.com/Jeffail/gabs/v2"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/fatih/color"
 )
