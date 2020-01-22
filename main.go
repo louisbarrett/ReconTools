@@ -443,38 +443,24 @@ func main() {
 
 		companyID := companyInfo.Path("id").String()
 		companyID = strings.Replace(companyID, "\"", "", 2)
-		companyDomain := companyInfo.Path("primary_domain").String()
-		companyDomain = strings.Replace(companyDomain, "\"", "", 2)
+		companyDomain := companyInfo.Path("primary_domain").Data().(string)
 
 		companyDetails := getOrganizationDetails(companyID)
 		parsedResults, err = gabs.ParseJSON(companyDetails)
 		if err != nil {
 			log.Fatal(err)
 		}
-		CEOFirstName := parsedResults.Path("ceo.current_ceo.first_name").String()
-		CEOLastName := parsedResults.Path("ceo.current_ceo.last_name").String()
-		CEOName := strings.Replace(CEOFirstName, "\"", "", 2) + " " + strings.Replace(CEOLastName, "\"", "", 2)
+		CEOFirstName := parsedResults.Path("ceo.current_ceo.first_name").Data()
+		CEOLastName := parsedResults.Path("ceo.current_ceo.last_name").Data()
+		CEOName := CEOFirstName.(string) + " " + CEOLastName.(string)
 		industrySector := parsedResults.Path("company_info.company_details.industrySector.sector_name")
-
-		companyFounded := parsedResults.Path("company_info.company_details.founded").String()
-		companyFounded = strings.Replace(companyFounded, "\"", "", 4)
-
-		companyAddressCountry := parsedResults.Path("company_info.company_details.hqAddress.country").String()
-		companyAddressCountry = strings.Replace(companyAddressCountry, "\"", "", 4)
-
-		companyAddressState := parsedResults.Path("company_info.company_details.hqAddress.state").String()
-		companyAddressState = strings.Replace(companyAddressState, "\"", "", 4)
-
-		companyAddressCity := parsedResults.Path("company_info.company_details.hqAddress.city").String()
-		companyAddressCity = strings.Replace(companyAddressCity, "\"", "", 4)
-
-		companyAddressStreet1 := parsedResults.Path("company_info.company_details.hqAddress.street1").String()
-		companyAddressStreet1 = strings.Replace(companyAddressStreet1, "\"", "", 4)
-
-		companyAddressStreet2 := parsedResults.Path("company_info.company_details.hqAddress.street2").String()
-		companyAddressStreet2 = strings.Replace(companyAddressStreet2, "\"", "", 4)
-		companyFullAddress := (companyAddressStreet1 + " " + companyAddressStreet2 + " " + companyAddressCity + " " + companyAddressState)
-
+		companyFounded := parsedResults.Path("company_info.company_details.founded").Data()
+		companyAddressCountry := parsedResults.Path("company_info.company_details.hqAddress.country").Data()
+		companyAddressState := parsedResults.Path("company_info.company_details.hqAddress.state").Data()
+		companyAddressCity := parsedResults.Path("company_info.company_details.hqAddress.city").Data()
+		companyAddressStreet1 := parsedResults.Path("company_info.company_details.hqAddress.street1").Data()
+		companyAddressStreet2 := parsedResults.Path("company_info.company_details.hqAddress.street2").Data()
+		companyFullAddress := (companyAddressStreet1.(string) + " " + companyAddressStreet2.(string) + " " + companyAddressCity.(string) + " " + companyAddressState.(string))
 		companyName := parsedResults.Path("company_info.company_details.name").String()
 		companyName = strings.Replace(companyName, "\"", "", 4)
 
@@ -487,6 +473,7 @@ func main() {
 		fmt.Println("Company TLD:", companyDomain)
 		fmt.Println("Industry Sector:", industrySector)
 		fmt.Println("Address:", companyFullAddress)
+		fmt.Println("Country:", companyAddressCountry)
 
 		if *flagDoxxCEO {
 			CEODoxx := getPerson("name", strings.Replace(CEOName, " ", "-", -1), "XX")
