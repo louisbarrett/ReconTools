@@ -1,9 +1,52 @@
 # ReconTools
-
-
-Example usage - ./ReconTools "Company Name"
+Commandline tool for conducting passive recon against organizations. Recon data is collected using a numerous APIs, however it is also possible to run the tool without any keys specified (results will be limited).
 
 ```
+git clone https://github.com/louisbarrett/recontools
+cd recontools
+go build 
+./recontools
+
+Usage of ./ReconTools:
+  -banner
+    	Show network banners
+  -doxx
+    	Attempt an OSINT look up on org CEO
+  -employees
+    	Attempt to discover employee profiles
+  -network
+    	Attempt to discover network perimiter via dig
+  -org string
+    	The name of the organization to scan
+  -output string
+    	Filename to output the report
+  -ports
+    	Attempt to discover network perimiter via dig
+```
+
+The following API keys should be set as environment variables to make use of advanced features
+```
+WIGLEAPIKEY - Wigle.net API KEY - https://api.wigle.net
+WIGLEAPISECRET - Wigle.net API secret
+
+CENSYSAPIKEY - Censys.io API KEY - https://censys.io/api
+CENSYSAPISECRET - Censys.io API Secret
+
+ABUSEDBSECRET - Abuse IP DB API Secret - https://www.abuseipdb.com/api
+
+PTUSER - PassiveTotal (RiskIQ) API User - https://community.riskiq.com/
+PTAPIKEY - PassiveTotal (RiskIQ) API Key
+
+SHODANAPIKEY - Shodan API Key - https://shodan.io
+
+HUNTERAPIKEY - Hunter.io API Key - https://hunter.io/api
+```
+
+
+
+```
+recontools --org ServiceNow --network
+
 Company Details
 
 Name: ServiceNow, Inc.
