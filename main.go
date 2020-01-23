@@ -55,6 +55,16 @@ var (
 	HunterAPIKey = os.Getenv("HUNTERAPIKEY")
 	red          = color.New(color.FgRed)
 	cyan         = color.New(color.FgCyan)
+
+	flagOrgName      = flag.String("org", "", "The name of the organization to scan")
+	flagOrgNetwork   = flag.Bool("network", false, "Attempt to discover network perimiter via dig")
+	flagNetworkPorts = flag.Bool("ports", false, "Attempt to discover network perimiter via dig")
+	flagBanner       = flag.Bool("banner", false, "Show network banners")
+	flagEmployees    = flag.Bool("employees", false, "Attempt to discover employee profiles")
+	flagDoxxCEO      = flag.Bool("doxx", false, "Attempt an OSINT look up on org CEO")
+	flagOutput       = flag.String("output", "", "Filename to output the report")
+	parsedResults    *gabs.Container
+	err              error
 )
 
 func getEmployees(domain string) string {
@@ -123,8 +133,10 @@ func queryShodan(Query string) gabs.Container {
 		}
 		red.Print("Ports: ")
 		fmt.Println(openPorts, "\n")
-		red.Print("Banner: ")
-		fmt.Println(nodeData, "\n")
+		if *flagBanner {
+			red.Print("Banner: ")
+			fmt.Println(nodeData, "\n")
+		}
 		return *prettyPrint
 	} else {
 		return gabs.Container{}
@@ -417,14 +429,7 @@ func queryCensys(query string) string {
 }
 
 func main() {
-	var flagOrgName = flag.String("org", "", "The name of the organization to scan")
-	var flagOrgNetwork = flag.Bool("network", false, "Attempt to discover network perimiter via dig")
-	var flagNetworkPorts = flag.Bool("ports", false, "Attempt to discover network perimiter via dig")
-	var flagEmployees = flag.Bool("employees", false, "Attempt to discover employee profiles")
-	var flagDoxxCEO = flag.Bool("doxx", false, "Attempt an OSINT look up on org CEO")
-	var flagOutput = flag.String("output", "", "Filename to output the report")
-	var parsedResults *gabs.Container
-	var err error
+
 	flag.Parse()
 
 	_, _, _, _, _ = flagOrgName, flagOrgNetwork, flagEmployees, flagOutput, flagNetworkPorts
