@@ -1,5 +1,5 @@
 # ReconTools
-Commandline tool for conducting passive recon against organizations. Recon data is collected using a numerous APIs, however it is also possible to run the tool without any keys specified (results will be limited).
+Commandline tool for conducting passive recon against organizations. Recon data is collected using numerous APIs (requiring keys), however it is also possible to run the tool without any keys specified (results will be limited).
 
 ```
 git clone https://github.com/louisbarrett/recontools
