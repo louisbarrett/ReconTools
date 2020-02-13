@@ -444,6 +444,10 @@ func main() {
 
 		companyDataURL := parsedResults.Path("results.*.attributeForAutoSuggestAsMap").Children()
 
+		if len(companyDataURL) < 1 {
+			red.Println("An organization could not be found using the search term", *flagOrgName)
+			return
+		}
 		companyInfo := companyDataURL[0]
 
 		companyID := companyInfo.Path("id").String()
