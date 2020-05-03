@@ -10,7 +10,7 @@ go build
 Usage of ./ReconTools:
   -banner
     	Show network banners
-  -doxx
+  -ceo
     	Attempt an OSINT look up on org CEO
   -employees
     	Attempt to discover employee profiles
