@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 
@@ -61,11 +62,68 @@ var (
 	flagNetworkPorts = flag.Bool("ports", false, "Attempt to discover network perimiter via dig")
 	flagBanner       = flag.Bool("banner", false, "Show network banners")
 	flagEmployees    = flag.Bool("employees", false, "Attempt to discover employee profiles")
-	flagDoxxCEO      = flag.Bool("doxx", false, "Attempt an OSINT look up on org CEO")
+	flagLookupCEO    = flag.Bool("ceo", false, "Attempt an OSINT look up on org CEO")
 	flagOutput       = flag.String("output", "", "Filename to output the report")
 	parsedResults    *gabs.Container
 	err              error
 )
+
+func whoisMiner(organization string) {
+	// searchResults := gabs.New()
+	requestURL := "https://whois.arin.net/ui/query.do?xslt=https%3A%2F%2Flocalhost%3A8080%2Fwhoisrws%2Fservlet%2Farin.xsl&flushCache=false&queryinput=" + organization //+ "&whoisSubmitButton=+"
+	httpResponse, err := http.Post(requestURL, "application/xml", nil)
+	parsedHTML, err := goquery.NewDocumentFromReader(httpResponse.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	responseLinks := parsedHTML.Find("a").Nodes
+	for i := range responseLinks {
+		orgEntityMatch, _ := regexp.MatchString("\\-([0-9]|ARIN)", responseLinks[i].FirstChild.Data)
+		if orgEntityMatch == true {
+			entityID := responseLinks[i].FirstChild.Data
+			entityResponse, err := http.Get("https://rdap.arin.net/registry/entity/" + entityID)
+			if err == nil && entityResponse.StatusCode == 200 {
+				fmt.Println(responseLinks[i].FirstChild.Data)
+				responseBytes := entityResponse.Body
+				message, _ := ioutil.ReadAll(responseBytes)
+				prettyPrint, _ := gabs.ParseJSON(message)
+
+				var whoisPhysicalAddress string
+				if prettyPrint.Path("entities.0.vcardArray.1.1.1.label").Data() != nil {
+					whoisPhysicalAddress = "\n" + prettyPrint.Path("entities.0.vcardArray.1.1.1.label").Data().(string)
+				} else {
+					whoisPhysicalAddress = ""
+				}
+
+				var whoisTechnicalContact string
+				if prettyPrint.Path("entities.0.vcardArray.1.2.3").Data() != nil {
+					whoisTechnicalContact = "\n" + prettyPrint.Path("entities.0.vcardArray.1.2.3").Data().(string)
+				} else {
+					whoisTechnicalContact = ""
+				}
+
+				var whoisEmail string
+				if prettyPrint.Path("entities.0.vcardArray.1.5.3").Data() != nil {
+					whoisEmail = "\n" + prettyPrint.Path("entities.0.vcardArray.1.5.3").Data().(string)
+				} else {
+					whoisEmail = ""
+				}
+
+				var whoisNetworks string
+				if prettyPrint.Path("networks").Data() != nil {
+					// whoisNetworks = prettyPrint.Path("networks.0.cidr0_cidrs.0.v4prefix").Data()
+					whoisNetworksFirst := prettyPrint.Path("networks.0.startAddress").Data().(string)
+					whoisNetworksLast := prettyPrint.Path("networks.0.endAddress").Data().(string)
+					whoisNetworks = "\n" + whoisNetworksFirst + " - " + whoisNetworksLast
+				} else {
+					whoisNetworks = ""
+				}
+
+				fmt.Println(whoisTechnicalContact, whoisEmail, whoisNetworks, whoisPhysicalAddress)
+			}
+		}
+	}
+}
 
 func getEmployees(domain string) string {
 	var requestURL string
@@ -484,9 +542,12 @@ func main() {
 		fmt.Println("Address:", companyFullAddress)
 		fmt.Println("Country:", companyAddressCountry)
 
-		if *flagDoxxCEO {
-			CEODoxx := getPerson("name", strings.Replace(CEOName, " ", "-", -1), "XX")
-			ceoDetails, _ := gabs.ParseJSON(CEODoxx)
+		red.Println("\nWHOIS Results\n")
+		whoisMiner(UserQuery)
+
+		if *flagLookupCEO {
+			CEOInfo := getPerson("name", strings.Replace(CEOName, " ", "-", -1), "XX")
+			ceoDetails, _ := gabs.ParseJSON(CEOInfo)
 			allResults := ceoDetails.Path("results").Children()
 			if len(allResults) > 1 {
 				red.Println("\n*CEO Personal Details: ")
