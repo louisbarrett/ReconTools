@@ -35,7 +35,7 @@ const (
 
 var (
 	// UserAgentString - Browser Identity for requests
-	UserAgentString = getLatestUserAgent()
+	UserAgentString = "recontools/1.0" //getLatestUserAgent()
 	// WigleAPIKey - API Key from wigle.net
 	WigleAPIKey = os.Getenv("WIGLEAPIKEY")
 	// WigleAPISecret - Secret from wigle.net
@@ -74,7 +74,7 @@ func whoisMiner(organization string) {
 	httpResponse, err := http.Post(requestURL, "application/xml", nil)
 	parsedHTML, err := goquery.NewDocumentFromReader(httpResponse.Body)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("WHOIS Miner failed:", err)
 	}
 	responseLinks := parsedHTML.Find("a").Nodes
 	for i := range responseLinks {
@@ -215,7 +215,7 @@ func CheckIPReputation(IPAddress string) {
 
 	httpResponse, err := httpClient.Do(httpRequest)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Check IP Reputation Failed:", err)
 	}
 	httpResponseBytes, _ := ioutil.ReadAll(httpResponse.Body)
 	fmt.Println(string(httpResponseBytes))
@@ -383,12 +383,12 @@ func getOrganizationByName(OrgName string) []byte {
 	requestURL := strings.Replace(OwlerSearchURL, "QUERY", OrgName, 1)
 	httpResponse, err := http.Get(requestURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Organization lookup failed", err)
 	}
 	// Process response
 	bytesCollection, errResponse := ioutil.ReadAll(httpResponse.Body)
 	if errResponse != nil {
-		log.Fatal("", errResponse)
+		log.Fatal("Parsing failure", string(bytesCollection), errResponse)
 	}
 	return bytesCollection
 }
@@ -424,12 +424,12 @@ func getSubDomains(domain string) string {
 	requestURL := strings.Replace(DNSDUmpsterSearchURL, "QUERY", domain, 1)
 	httpResponse, err := http.Get(requestURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to get sub domains", err)
 	}
 	// Process response
 	bytesCollection, errResponse := ioutil.ReadAll(httpResponse.Body)
 	if errResponse != nil {
-		log.Fatal("", errResponse)
+		log.Fatal("Failed to read bytes", errResponse)
 	}
 
 	subDomains := string(bytesCollection)
@@ -497,7 +497,7 @@ func main() {
 		Results := getOrganizationByName(UserQuery)
 		parsedResults, err = gabs.ParseJSON(Results)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Failed to parse response", err)
 		}
 
 		companyDataURL := parsedResults.Path("results.*.attributeForAutoSuggestAsMap").Children()
