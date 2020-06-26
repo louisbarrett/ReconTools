@@ -64,6 +64,7 @@ var (
 	flagEmployees    = flag.Bool("employees", false, "Attempt to discover employee profiles")
 	flagLookupCEO    = flag.Bool("ceo", false, "Attempt an OSINT look up on org CEO")
 	flagOutput       = flag.String("output", "", "Filename to output the report")
+	flagPT           = flag.Bool("PT", false, "Search Passive Total")
 	parsedResults    *gabs.Container
 	err              error
 )
@@ -493,6 +494,9 @@ func main() {
 	_, _, _, _, _ = flagOrgName, flagOrgNetwork, flagEmployees, flagOutput, flagNetworkPorts
 
 	UserQuery := *flagOrgName
+	if *flagPT {
+		queryPTAll(*flagOrgName)
+	}
 	if len(*flagOrgName) > 0 {
 		Results := getOrganizationByName(UserQuery)
 		parsedResults, err = gabs.ParseJSON(Results)
